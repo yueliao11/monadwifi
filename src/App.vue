@@ -79,10 +79,11 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, onUnmounted } from 'vue'
 import type { WalletState, PaymentState } from './types'
 import { useWallet } from './composables/useWalletFixed'
 import { usePayment } from './composables/usePayment'
+import { usePolling, type PollingConfig } from './composables/usePolling'
 import { getClientMacAddress, redirectToWifiDogAuth, type WifiDogConfig } from './utils/wifidog'
 
 const connecting = ref(false)
@@ -146,8 +147,14 @@ const paymentConfig = {
 }
 
 const wifiDogConfig: WifiDogConfig = {
-  authServerUrl: 'http://.1.249:2060/wifidog/temporary_pass',
+  authServerUrl: 'http://.1.254:2060/wifidog/temporary_pass',
   timeout: 10
+}
+
+// 轮询配置
+const pollingConfig: PollingConfig = {
+  endpoint: 'http://192.168.1.254:2060/wifidog/temporary_pass',
+  interval: 3000 // 3秒间隔
 }
 
 const {
@@ -159,6 +166,9 @@ const {
 } = useWallet()
 
 const { payAndReturn } = usePayment()
+
+// 初始化轮询
+const { state: pollingState, startPolling, stopPolling, cleanup } = usePolling(pollingConfig)
 
 const formatAddress = (address: string): string => {
   if (!address) return ''
@@ -218,21 +228,10 @@ const payAndUnlock = async () => {
       const newBalance = await getBalance(walletState.address)
       walletState.balance = newBalance
       
-      showMessage('支付成功，正在重定向到WiFi认证', 'success')
+      showMessage('支付成功！后台轮询将自动检测WiFi访问权限', 'success')
       
-      // 获取MAC地址并重定向到WiFiDog认证服务器
-      try {
-        const macAddress = await getClientMacAddress()
-        console.log('获取到MAC地址:', macAddress)
-        
-        // 延迟1秒后重定向，让用户看到成功消息
-        setTimeout(() => {
-          redirectToWifiDogAuth(wifiDogConfig, macAddress)
-        }, 1000)
-      } catch (error) {
-        console.error('获取MAC地址失败:', error)
-        showMessage('获取网络信息失败，请手动连接WiFi', 'error')
-      }
+      // 支付成功后，轮询会自动检测到访问权限并重定向到百度
+      // 不再需要手动重定向到WiFiDog认证服务器
     } else {
       paymentState.status = 'failed'
       paymentState.message = result.error || '支付失败，请重试'
@@ -265,6 +264,11 @@ const getPayButtonText = (): string => {
 
 onMounted(async () => {
   console.log('App mounted, checking wallet connection...')
+  
+  // 启动后台轮询
+  console.log('🚀 Starting background polling for WiFi access...')
+  startPolling()
+  
   // 检查是否已连接钱包
   const connection = await checkConnection()
   console.log('Connection result:', connection)
@@ -291,6 +295,20 @@ onMounted(async () => {
     console.log('Wallet not connected or connection failed')
   }
 })
+
+// 组件卸载时清理轮询
+// 组件卸载时清理轮询
+onUnmounted(() => {
+  console.log('App unmounting, cleaning up polling...')
+  cleanup()
+})
+
+// 页面卸载时也清理轮询（防止内存泄漏）
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    cleanup()
+  })
+}
 </script>
 
 <style scoped>
