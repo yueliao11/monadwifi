@@ -228,10 +228,12 @@ const payAndUnlock = async () => {
       const newBalance = await getBalance(walletState.address)
       walletState.balance = newBalance
       
-      showMessage('支付成功！后台轮询将自动检测WiFi访问权限', 'success')
+      showMessage('支付成功！正在跳转到百度...', 'success')
       
-      // 支付成功后，轮询会自动检测到访问权限并重定向到百度
-      // 不再需要手动重定向到WiFiDog认证服务器
+      // 支付成功后立即跳转到百度
+      setTimeout(() => {
+        window.location.href = 'https://www.baidu.com'
+      }, 1000)
     } else {
       paymentState.status = 'failed'
       paymentState.message = result.error || '支付失败，请重试'

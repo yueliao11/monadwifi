@@ -201,49 +201,11 @@ export function usePolling(config: PollingConfig) {
     isRequestInProgress = false
   }
 
-  // 处理重定向
+  // 处理重定向 - 现在只用于维持连接，不进行页面跳转
   const handleRedirection = () => {
-    console.log('🎉 WiFi access granted! Redirecting to Baidu...')
-    
-    try {
-      // 显示成功消息
-      const messageEl = document.createElement('div')
-      messageEl.textContent = 'WiFi访问已开通，正在跳转到百度...'
-      messageEl.style.cssText = `
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #67c23a;
-        color: white;
-        padding: 12px 20px;
-        border-radius: 6px;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-        z-index: 9999;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      `
-      
-      if (document.body) {
-        document.body.appendChild(messageEl)
-      }
-      
-      // 1秒后重定向到百度
-      setTimeout(() => {
-        try {
-          window.location.href = 'https://www.baidu.com'
-        } catch (redirectError) {
-          console.error('❌ Redirection failed:', redirectError)
-          // 如果重定向失败，尝试使用window.open
-          window.open('https://www.baidu.com', '_self')
-        }
-      }, 1000)
-    } catch (error) {
-      console.error('❌ Error showing success message:', error)
-      // 即使消息显示失败，也要尝试重定向
-      setTimeout(() => {
-        window.location.href = 'https://www.baidu.com'
-      }, 500)
-    }
+    console.log('🎉 WiFi access granted! Connection maintained.')
+    // 不再跳转到百度，只是维持连接状态
+    // 跳转逻辑已移到支付完成后立即执行
   }
 
   // 清理资源
